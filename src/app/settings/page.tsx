@@ -36,11 +36,20 @@ export default function Settings() {
     const supabase = createClient();
     if (!supabase) return;
 
+    interface SettingsRow {
+      recording_enabled: boolean;
+      ai_analysis_enabled: boolean;
+      notification_action_due: boolean;
+      notification_call_incomplete: boolean;
+      notification_periodic: boolean;
+      notification_event_trigger: boolean;
+    }
+
     const { data } = await supabase
       .from("user_settings")
       .select("*")
       .eq("user_id", user.id)
-      .maybeSingle();
+      .maybeSingle() as { data: SettingsRow | null };
 
     if (data) {
       setSettings({
@@ -66,7 +75,8 @@ export default function Settings() {
     const next = { ...settings, [key]: value };
     setSettings(next);
 
-    await supabase.from("user_settings").upsert(
+    const typedSupabase = supabase as unknown as { from: (table: string) => { upsert: (data: Record<string, unknown>, opts: { onConflict: string }) => Promise<unknown> } };
+    await typedSupabase.from("user_settings").upsert(
       {
         user_id: user.id,
         recording_enabled: next.recordingEnabled,

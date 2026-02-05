@@ -88,7 +88,7 @@ export default function AnalysisResult() {
 
     if (actionsData?.length) {
       setActions(
-        actionsData.map((a) => toAction(a as unknown as ActionRow & { id: string }))
+        actionsData.map((a: unknown) => toAction(a as ActionRow & { id: string }))
       );
     }
   }, [conversationId]);
@@ -112,7 +112,7 @@ export default function AnalysisResult() {
         .from("conversations")
         .select("summary")
         .eq("id", conversationId)
-        .maybeSingle();
+        .maybeSingle() as { data: { summary: string | null } | null };
 
       if (cancelled) return;
 

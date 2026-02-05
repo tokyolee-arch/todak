@@ -18,11 +18,18 @@ async function getOrCreateDevUser(): Promise<{ user: User | null; error?: string
   }
 
   try {
+    interface UserRow {
+      id: string;
+      email: string;
+      display_name: string | null;
+      created_at: string;
+    }
+
     const { data: existing, error: selectError } = await supabase
       .from("users")
       .select("id, email, display_name, created_at")
       .limit(1)
-      .maybeSingle();
+      .maybeSingle() as { data: UserRow | null; error: { message: string } | null };
 
     if (selectError) {
       // 테이블이 없거나 RLS 정책 문제
@@ -44,7 +51,7 @@ async function getOrCreateDevUser(): Promise<{ user: User | null; error?: string
       };
     }
 
-    const { data: inserted, error: insertError } = await supabase
+    const insertResult = await (supabase as unknown as { from: (table: string) => { insert: (data: Record<string, unknown>) => { select: (cols: string) => { single: () => Promise<{ data: UserRow | null; error: { message: string } | null }> } } } })
       .from("users")
       .insert({
         email: DEV_USER_EMAIL,
@@ -52,6 +59,8 @@ async function getOrCreateDevUser(): Promise<{ user: User | null; error?: string
       })
       .select("id, email, display_name, created_at")
       .single();
+
+    const { data: inserted, error: insertError } = insertResult;
 
     if (insertError) {
       console.error("Supabase insert error:", insertError);

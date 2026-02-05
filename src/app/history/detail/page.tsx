@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -35,7 +35,7 @@ interface ActionRow {
   completed_at: string | null;
 }
 
-export default function HistoryDetail() {
+function HistoryDetailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const conversationId = searchParams.get("conversationId");
@@ -113,7 +113,7 @@ export default function HistoryDetail() {
   const toggleActionComplete = async (actionId: string, completed: boolean) => {
     const supabase = createClient();
     if (!supabase) return;
-    await supabase
+    await (supabase as unknown as { from: (table: string) => { update: (data: Record<string, unknown>) => { eq: (col: string, val: string) => Promise<unknown> } } })
       .from("actions")
       .update({
         completed: !completed,
@@ -287,5 +287,13 @@ export default function HistoryDetail() {
         </Button>
       </div>
     </div>
+  );
+}
+
+export default function HistoryDetail() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-todak-cream"><p className="text-body text-gray-600">로딩 중...</p></div>}>
+      <HistoryDetailContent />
+    </Suspense>
   );
 }

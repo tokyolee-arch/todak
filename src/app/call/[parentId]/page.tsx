@@ -148,7 +148,7 @@ export default function CallPreparation() {
       .order("due_date", { ascending: true });
 
     const mappedActions =
-      actionsData?.map((a) => toAction(a as unknown as ActionRow)) ?? [];
+      actionsData?.map((a: unknown) => toAction(a as ActionRow)) ?? [];
     setActions(mappedActions);
 
     const { data: lastConv } = await supabase
@@ -178,7 +178,7 @@ export default function CallPreparation() {
     const supabase = createClient();
     if (!supabase) return;
 
-    const { data: conversation, error } = await supabase
+    const result = await (supabase as unknown as { from: (table: string) => { insert: (data: Record<string, unknown>) => { select: () => { single: () => Promise<{ data: { id: string } | null; error: Error | null }> } } } })
       .from("conversations")
       .insert({
         parent_id: parentId,
@@ -187,6 +187,7 @@ export default function CallPreparation() {
       })
       .select()
       .single();
+    const { data: conversation, error } = result;
 
     if (error) {
       console.error("Error starting conversation:", error);

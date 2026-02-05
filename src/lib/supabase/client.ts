@@ -5,8 +5,7 @@ import type { Database } from "./types";
 
 /**
  * Next.js 14 App Router용 Supabase 클라이언트.
- * (createClientComponentClient from @supabase/auth-helpers-nextjs 사용 시
- *  해당 패키지 설치 후 createClientComponentClient<Database>() 로 교체 가능)
+ * 환경 변수가 없으면 null을 반환
  */
 export function createClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;

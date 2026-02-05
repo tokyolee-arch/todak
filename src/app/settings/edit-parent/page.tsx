@@ -1,10 +1,11 @@
 "use client";
 
+import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
-export default function EditParentPage() {
+function EditParentContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const relationship = searchParams.get("relationship");
@@ -37,5 +38,13 @@ export default function EditParentPage() {
         </Button>
       </Card>
     </div>
+  );
+}
+
+export default function EditParentPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-todak-cream p-6"><p className="text-body text-gray-600">로딩 중...</p></div>}>
+      <EditParentContent />
+    </Suspense>
   );
 }

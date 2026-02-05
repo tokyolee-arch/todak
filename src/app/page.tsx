@@ -100,12 +100,12 @@ export default function Home() {
           .eq("parent_id", parent.id)
           .order("ended_at", { ascending: false })
           .limit(1)
-          .maybeSingle();
+          .maybeSingle() as { data: { ended_at: string | null } | null };
 
         if (lastConv?.ended_at) {
           setLastContacts((prev) => ({
             ...prev,
-            [parent.id]: new Date(lastConv.ended_at),
+            [parent.id]: new Date(lastConv.ended_at as string),
           }));
         }
 

@@ -33,6 +33,7 @@ interface ActionRow {
   id: string;
   conversation_id: string | null;
   parent_id: string;
+  type: string;
   topic: string;
   due_date: string;
   completed: boolean;
@@ -66,6 +67,7 @@ function toAction(row: ActionRow): Action {
     id: row.id,
     conversationId: row.conversation_id ?? undefined,
     parentId: row.parent_id,
+    type: row.type as Action["type"],
     topic: row.topic,
     dueDate: new Date(row.due_date),
     completed: row.completed,
@@ -93,7 +95,7 @@ export default function History() {
   const toggleActionComplete = async (actionId: string, completed: boolean) => {
     const supabase = createClient();
     if (!supabase) return;
-    await supabase
+    await (supabase as unknown as { from: (table: string) => { update: (data: Record<string, unknown>) => { eq: (col: string, val: string) => Promise<unknown> } } })
       .from("actions")
       .update({
         completed: !completed,
@@ -138,7 +140,7 @@ export default function History() {
 
         const { data: actionsData } = await supabase
           .from("actions")
-          .select("id, conversation_id, parent_id, topic, due_date, completed")
+          .select("id, conversation_id, parent_id, type, topic, due_date, completed")
           .eq("parent_id", parent.id)
           .order("due_date", { ascending: true });
 

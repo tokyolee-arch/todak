@@ -42,7 +42,7 @@ export default function CallRecording() {
       return;
     }
 
-    await supabase
+    await (supabase as unknown as { from: (table: string) => { update: (data: Record<string, unknown>) => { eq: (col: string, val: string) => Promise<unknown> } } })
       .from("conversations")
       .update({
         ended_at: new Date().toISOString(),

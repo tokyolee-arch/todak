@@ -83,10 +83,12 @@ export default function ParentInfo() {
     const supabase = createClient();
     if (!user || !supabase) return;
 
+    const typedSupabase = supabase as unknown as { from: (table: string) => { insert: (data: Record<string, unknown>) => Promise<unknown> } };
+
     try {
       // 돌아가시지 않은 부모님만 저장
       if (motherData.name && !motherData.passedAway) {
-        await supabase.from("parents").insert({
+        await typedSupabase.from("parents").insert({
           user_id: user.id,
           name: motherData.name,
           relationship: "mother",
@@ -97,7 +99,7 @@ export default function ParentInfo() {
       }
 
       if (fatherData.name && !fatherData.passedAway) {
-        await supabase.from("parents").insert({
+        await typedSupabase.from("parents").insert({
           user_id: user.id,
           name: fatherData.name,
           relationship: "father",

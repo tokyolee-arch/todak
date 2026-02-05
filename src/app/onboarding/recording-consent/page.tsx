@@ -17,8 +17,10 @@ export default function RecordingConsent() {
     const supabase = createClient();
     if (!user || !supabase) return;
 
+    const typedSupabase = supabase as unknown as { from: (table: string) => { insert: (data: Record<string, unknown>) => Promise<unknown> } };
+
     try {
-      await supabase.from("user_settings").insert({
+      await typedSupabase.from("user_settings").insert({
         user_id: user.id,
         recording_enabled: agreed,
         ai_analysis_enabled: agreed,
