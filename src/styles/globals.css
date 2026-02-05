@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 40 20% 96%;
+    --foreground: 24 15% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 24 15% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 24 15% 15%;
+    --primary: 24 45% 45%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 40 25% 90%;
+    --secondary-foreground: 24 15% 20%;
+    --muted: 40 15% 93%;
+    --muted-foreground: 24 10% 45%;
+    --accent: 150 20% 88%;
+    --accent-foreground: 24 15% 20%;
+    --destructive: 0 70% 55%;
+    --border: 30 15% 88%;
+    --input: 30 15% 88%;
+    --ring: 24 45% 45%;
+    --radius: 0.75rem;
+  }
+
+  * {
+    @apply border-[hsl(var(--border))];
+  }
+
+  html {
+    @apply antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply text-[hsl(var(--foreground))];
+    font-size: 16px;
+    min-height: 100dvh;
+    overflow: hidden;
+  }
+}
+
+@layer components {
+  .touch-target {
+    @apply min-h-[48px] min-w-[48px] flex items-center justify-center;
+  }
+}
+
+@layer utilities {
+  /* 스크롤바 숨기기 */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}

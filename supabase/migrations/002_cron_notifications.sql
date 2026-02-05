@@ -1,0 +1,21 @@
+-- 알림 Cron 스케줄 (Edge Function notifications-cron 주기 호출)
+-- 사용 전: Supabase Dashboard에서 pg_cron, pg_net 확장 활성화
+-- URL과 Authorization 값은 배포 환경에 맞게 교체 후 실행
+
+-- 매일 19:00 KST (10:00 UTC) 실행 예시:
+-- select cron.schedule(
+--   'notifications-daily',
+--   '0 10 * * *',
+--   $$ select net.http_post(
+--     url := 'https://YOUR_PROJECT_REF.supabase.co/functions/v1/notifications-cron',
+--     headers := jsonb_build_object(
+--       'Content-Type', 'application/json',
+--       'Authorization', 'Bearer ' || current_setting('app.settings.service_role_key', true)
+--     ),
+--     body := '{}'::jsonb,
+--     timeout_milliseconds := 30000
+--   ) as request_id; $$
+-- );
+
+-- 참고: service_role_key는 Vault에 저장 후 current_setting으로 읽거나,
+-- 외부 스케줄러(예: GitHub Actions, Vercel Cron)에서 HTTP POST로 호출해도 됨.
