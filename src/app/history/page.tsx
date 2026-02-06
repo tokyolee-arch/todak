@@ -37,6 +37,7 @@ interface ActionRow {
   topic: string;
   due_date: string;
   completed: boolean;
+  selected: boolean | null;
 }
 
 function toParent(row: ParentRow): Parent {
@@ -140,8 +141,9 @@ export default function History() {
 
         const { data: actionsData } = await supabase
           .from("actions")
-          .select("id, conversation_id, parent_id, type, topic, due_date, completed")
+          .select("id, conversation_id, parent_id, type, topic, due_date, completed, selected")
           .eq("parent_id", parent.id)
+          .eq("selected", true) // 선택된 것만
           .order("due_date", { ascending: true });
 
         if (actionsData?.length) {

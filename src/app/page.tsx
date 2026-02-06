@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/lib/store/authStore";
 import type { Parent, Action } from "@/types";
-import { formatDistanceToNow } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 import { BottomNav } from "@/components/layout/BottomNav";
 
@@ -33,6 +33,7 @@ interface ActionRow {
   due_date: string;
   completed: boolean;
   completed_at: string | null;
+  selected: boolean | null;
 }
 
 function toParent(row: ParentRow): Parent {
@@ -109,19 +110,27 @@ export default function Home() {
           }));
         }
 
+        // 미완료 액션 (선택된 것만)
         const { data: actionsData } = await supabase
           .from("actions")
           .select("*")
           .eq("parent_id", parent.id)
           .eq("completed", false)
+          .eq("selected", true) // 선택된 것만
           .order("due_date", { ascending: true })
-          .limit(2);
+          .limit(3); // 최대 3개만 표시
 
         if (actionsData && actionsData.length > 0) {
           const actionRows = actionsData as unknown as ActionRow[];
           setActions((prev) => ({
             ...prev,
             [parent.id]: actionRows.map(toAction),
+          }));
+        } else {
+          // 선택된 액션이 없으면 빈 배열로 설정
+          setActions((prev) => ({
+            ...prev,
+            [parent.id]: [],
           }));
         }
       }
@@ -207,26 +216,29 @@ export default function Home() {
               </div>
 
               {parentActions.length > 0 && (
-                <div className="space-y-1">
+                <div className="space-y-2">
                   <p className="text-xs font-semibold text-gray-700">
                     📌 다음 할 일:
                   </p>
                   {parentActions.map((action) => (
                     <div
                       key={action.id}
-                      className="pl-3 text-xs text-gray-600"
+                      className="flex items-start justify-between text-xs text-gray-600 pl-2"
                     >
-                      • {action.topic}
+                      <span className="flex-1">• {action.topic}</span>
+                      <Badge variant="outline" className="text-[10px] ml-2 shrink-0">
+                        {format(action.dueDate, "M/d")}
+                      </Badge>
                     </div>
                   ))}
                 </div>
               )}
 
               <Button
-                onClick={() => router.push(`/call/${parent.id}`)}
+                onClick={() => router.push(`/call/${parent.id}/input`)}
                 className="h-10 w-full bg-todak-orange hover:bg-todak-orange/90 text-sm"
               >
-                📞 전화하기
+                💬 통화 내용 입력하기
               </Button>
             </Card>
           );
