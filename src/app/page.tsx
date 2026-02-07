@@ -2,247 +2,163 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/lib/store/authStore";
-import type { Parent, Action } from "@/types";
-import { format, formatDistanceToNow } from "date-fns";
-import { ko } from "date-fns/locale";
 import { BottomNav } from "@/components/layout/BottomNav";
-
-interface ParentRow {
-  id: string;
-  user_id: string;
-  name: string;
-  relationship: string;
-  birthday: string | null;
-  phone: string | null;
-  profile_image_url: string | null;
-  min_contact_interval_days: number;
-}
-
-interface ActionRow {
-  id: string;
-  conversation_id: string | null;
-  parent_id: string;
-  type: string;
-  topic: string;
-  reason: string | null;
-  due_date: string;
-  completed: boolean;
-  completed_at: string | null;
-  selected: boolean | null;
-}
-
-function toParent(row: ParentRow): Parent {
-  return {
-    id: row.id,
-    userId: row.user_id,
-    name: row.name,
-    relationship: row.relationship as Parent["relationship"],
-    birthday: row.birthday ? new Date(row.birthday) : undefined,
-    phone: row.phone ?? undefined,
-    profileImageUrl: row.profile_image_url ?? undefined,
-    minContactIntervalDays: row.min_contact_interval_days,
-  };
-}
-
-function toAction(row: ActionRow): Action {
-  return {
-    id: row.id,
-    conversationId: row.conversation_id ?? undefined,
-    parentId: row.parent_id,
-    type: row.type as Action["type"],
-    topic: row.topic,
-    reason: row.reason ?? undefined,
-    dueDate: new Date(row.due_date),
-    completed: row.completed,
-    completedAt: row.completed_at ? new Date(row.completed_at) : undefined,
-  };
-}
 
 export default function Home() {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
-  const [parents, setParents] = useState<Parent[]>([]);
-  const [actions, setActions] = useState<Record<string, Action[]>>({});
-  const [lastContacts, setLastContacts] = useState<Record<string, Date>>({});
+  const [demoActions, setDemoActions] = useState<Array<{
+    id: string;
+    topic: string;
+    due_date: string;
+    type: string;
+  }>>([]);
 
   useEffect(() => {
     if (!user) {
-      router.push("/onboarding");
+      router.push("/login");
       return;
     }
 
-    loadData();
-  }, [user, router]);
-
-  const loadData = async () => {
-    if (!user) return;
-
-    const supabase = createClient();
-    if (!supabase) return;
-
-    const { data: parentsData } = await supabase
-      .from("parents")
-      .select("*")
-      .eq("user_id", user.id);
-
-    if (parentsData && parentsData.length > 0) {
-      const rows = parentsData as unknown as ParentRow[];
-      setParents(rows.map(toParent));
-
-      for (const parent of rows) {
-        const { data: lastConv } = await supabase
-          .from("conversations")
-          .select("ended_at")
-          .eq("parent_id", parent.id)
-          .order("ended_at", { ascending: false })
-          .limit(1)
-          .maybeSingle() as { data: { ended_at: string | null } | null };
-
-        if (lastConv?.ended_at) {
-          setLastContacts((prev) => ({
-            ...prev,
-            [parent.id]: new Date(lastConv.ended_at as string),
-          }));
-        }
-
-        // 미완료 액션 (선택된 것만)
-        const { data: actionsData } = await supabase
-          .from("actions")
-          .select("*")
-          .eq("parent_id", parent.id)
-          .eq("completed", false)
-          .eq("selected", true) // 선택된 것만
-          .order("due_date", { ascending: true })
-          .limit(3); // 최대 3개만 표시
-
-        if (actionsData && actionsData.length > 0) {
-          const actionRows = actionsData as unknown as ActionRow[];
-          setActions((prev) => ({
-            ...prev,
-            [parent.id]: actionRows.map(toAction),
-          }));
-        } else {
-          // 선택된 액션이 없으면 빈 배열로 설정
-          setActions((prev) => ({
-            ...prev,
-            [parent.id]: [],
-          }));
-        }
+    // 데모 모드: localStorage에서 액션 로드
+    const storedActions = localStorage.getItem("demoActions");
+    if (storedActions) {
+      try {
+        const actions = JSON.parse(storedActions);
+        // 완료되지 않은 액션만 표시 (최대 3개)
+        const pendingActions = actions
+          .filter((a: { completed: boolean }) => !a.completed)
+          .slice(0, 3);
+        setDemoActions(pendingActions);
+      } catch (e) {
+        console.error("Error loading demo actions:", e);
       }
     }
-  };
+  }, [user, router]);
 
-  const getRelationshipStatus = (
-    parentId: string,
-    minInterval: number
-  ): "good" | "attention" | "urgent" => {
-    const lastContact = lastContacts[parentId];
-    if (!lastContact) return "urgent";
-
-    const daysSince = Math.floor(
-      (Date.now() - lastContact.getTime()) / (1000 * 60 * 60 * 24)
-    );
-
-    if (daysSince < minInterval) return "good";
-    if (daysSince < minInterval * 1.5) return "attention";
-    return "urgent";
-  };
-
-  const statusConfig = {
-    good: { color: "bg-todak-green", label: "좋음", emoji: "🟢" },
-    attention: { color: "bg-yellow-500", label: "연락 필요", emoji: "🟡" },
-    urgent: { color: "bg-todak-orange", label: "긴급", emoji: "🔴" },
-  };
+  const menuItems = [
+    {
+      id: "call-input",
+      title: "통화내용 살펴보기",
+      description: "통화 내용을 입력하고 AI 분석을 받습니다",
+      icon: "📞",
+      color: "bg-todak-orange/10 border-todak-orange",
+      iconBg: "bg-todak-orange/20",
+      onClick: () => router.push("/call/demo/input"),
+      highlight: true,
+    },
+    {
+      id: "parent-info",
+      title: "부모님 정보 입력",
+      description: "부모님 정보를 등록하고 관리합니다",
+      icon: "👨‍👩‍👧",
+      color: "bg-blue-50 border-blue-200",
+      iconBg: "bg-blue-100",
+      onClick: () => router.push("/onboarding/parent-info"),
+    },
+    {
+      id: "conversations",
+      title: "이전 대화 내용",
+      description: "부모님과의 대화 기록을 확인합니다",
+      icon: "💬",
+      color: "bg-green-50 border-green-200",
+      iconBg: "bg-green-100",
+      onClick: () => router.push("/history"),
+    },
+    {
+      id: "schedules",
+      title: "다음 일정 목록",
+      description: "예정된 일정과 할 일을 확인합니다",
+      icon: "📅",
+      color: "bg-purple-50 border-purple-200",
+      iconBg: "bg-purple-100",
+      onClick: () => router.push("/history"),
+      badge: demoActions.length > 0 ? demoActions.length : undefined,
+    },
+  ];
 
   return (
     <div className="flex flex-col h-full bg-todak-cream">
       {/* 헤더 */}
       <div className="bg-white p-4 shadow-sm shrink-0">
-        <h1 className="text-xl font-bold text-todak-brown">TODAK</h1>
-        <p className="mt-1 text-sm text-gray-600">
-          {user?.displayName ?? user?.email ?? "회원"}님의 부모님 관계 현황
+        <div className="flex items-center gap-3">
+          <Image
+            src="/images/todak-logo.png"
+            alt="TODAK"
+            width={100}
+            height={32}
+            className="object-contain"
+          />
+        </div>
+        <p className="mt-2 text-sm text-gray-600">
+          안녕하세요, {user?.displayName ?? user?.email?.split("@")[0] ?? "회원"}님!
         </p>
       </div>
 
       {/* 스크롤 가능한 컨텐츠 영역 */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {parents.length === 0 && (
-          <Card className="p-4 text-center text-sm text-gray-600">
-            등록된 부모님이 없습니다. 설정에서 부모님 정보를 추가해 주세요.
+        {/* 상단 여백 - 추후 기능 추가 영역 */}
+        <div className="h-20 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center">
+          <p className="text-sm text-gray-400">추가 기능 예정</p>
+        </div>
+
+        {/* 메뉴 카드들 */}
+        {menuItems.map((item) => (
+          <Card
+            key={item.id}
+            className={`p-4 border-2 cursor-pointer transition-all hover:shadow-md active:scale-[0.98] ${item.color} ${
+              item.highlight ? "shadow-md" : ""
+            }`}
+            onClick={item.onClick}
+          >
+            <div className="flex items-center gap-4">
+              <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${item.iconBg}`}>
+                <span className="text-2xl">{item.icon}</span>
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <h2 className={`text-base font-bold ${item.highlight ? "text-todak-orange" : "text-gray-800"}`}>
+                    {item.title}
+                  </h2>
+                  {item.badge && (
+                    <Badge className="bg-todak-orange text-white text-xs">
+                      {item.badge}
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-sm text-gray-600 mt-0.5">{item.description}</p>
+              </div>
+              <span className={`text-xl ${item.highlight ? "text-todak-orange" : "text-gray-400"}`}>›</span>
+            </div>
+          </Card>
+        ))}
+
+        {/* 다음 일정 미리보기 */}
+        {demoActions.length > 0 && (
+          <Card className="p-4 bg-white border border-gray-200">
+            <h3 className="text-sm font-bold text-gray-700 mb-3">📌 다음 할 일</h3>
+            <div className="space-y-2">
+              {demoActions.map((action) => (
+                <div
+                  key={action.id}
+                  className="flex items-center justify-between text-sm"
+                >
+                  <span className="text-gray-600">• {action.topic}</span>
+                  <Badge variant="outline" className="text-xs">
+                    {new Date(action.due_date).toLocaleDateString("ko-KR", {
+                      month: "numeric",
+                      day: "numeric",
+                    })}
+                  </Badge>
+                </div>
+              ))}
+            </div>
           </Card>
         )}
-
-        {parents.map((parent) => {
-          const status = getRelationshipStatus(
-            parent.id,
-            parent.minContactIntervalDays
-          );
-          const config = statusConfig[status];
-          const parentActions = actions[parent.id] ?? [];
-          const lastContact = lastContacts[parent.id];
-
-          return (
-            <Card key={parent.id} className="space-y-3 p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="text-3xl">
-                    {parent.relationship === "mother" ? "👩" : "👨"}
-                  </span>
-                  <div>
-                    <h2 className="text-base font-bold">{parent.name}</h2>
-                    <p className="text-xs text-gray-600">
-                      {parent.relationship === "mother" ? "어머니" : "아버지"}
-                    </p>
-                  </div>
-                </div>
-                <Badge className={`${config.color} text-white text-xs`}>
-                  {config.emoji} {config.label}
-                </Badge>
-              </div>
-
-              <div className="text-xs text-gray-600">
-                마지막 연락:{" "}
-                {lastContact
-                  ? formatDistanceToNow(lastContact, {
-                      addSuffix: true,
-                      locale: ko,
-                    })
-                  : "기록 없음"}
-              </div>
-
-              {parentActions.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold text-gray-700">
-                    📌 다음 할 일:
-                  </p>
-                  {parentActions.map((action) => (
-                    <div
-                      key={action.id}
-                      className="flex items-start justify-between text-xs text-gray-600 pl-2"
-                    >
-                      <span className="flex-1">• {action.topic}</span>
-                      <Badge variant="outline" className="text-[10px] ml-2 shrink-0">
-                        {format(action.dueDate, "M/d")}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <Button
-                onClick={() => router.push(`/call/${parent.id}/input`)}
-                className="h-10 w-full bg-todak-orange hover:bg-todak-orange/90 text-sm"
-              >
-                💬 통화 내용 입력하기
-              </Button>
-            </Card>
-          );
-        })}
       </div>
 
       {/* 하단 네비게이션 */}

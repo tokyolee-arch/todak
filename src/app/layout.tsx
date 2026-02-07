@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "@/styles/globals.css";
 import { PhoneFrame } from "@/components/layout/PhoneFrame";
+import { AuthProvider } from "@/components/providers/AuthProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,7 +19,9 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body className={inter.className}>
-        <PhoneFrame>{children}</PhoneFrame>
+        <PhoneFrame>
+          <AuthProvider>{children}</AuthProvider>
+        </PhoneFrame>
       </body>
     </html>
   );

@@ -117,7 +117,13 @@ export default function ParentInfo() {
   return (
     <div className="flex flex-col h-full bg-todak-cream">
       {/* 헤더 */}
-      <div className="p-4 shrink-0">
+      <div className="bg-white p-4 shadow-sm shrink-0">
+        <button
+          onClick={() => router.back()}
+          className="text-gray-600 text-sm mb-2 flex items-center gap-1"
+        >
+          ← 뒤로
+        </button>
         <h1 className="text-lg font-bold text-todak-brown">
           부모님 정보를 알려주세요
         </h1>

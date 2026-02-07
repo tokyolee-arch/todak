@@ -99,6 +99,12 @@ export default function Settings() {
     <div className="flex flex-col h-full bg-todak-cream">
       {/* 헤더 */}
       <div className="bg-white p-4 shadow-sm shrink-0">
+        <button
+          onClick={() => router.push("/")}
+          className="text-gray-600 text-sm mb-2 flex items-center gap-1"
+        >
+          ← 홈으로
+        </button>
         <h1 className="text-xl font-bold text-todak-brown">설정</h1>
       </div>
 
@@ -247,6 +253,25 @@ export default function Settings() {
             <p>서비스 이용약관</p>
           </div>
         </Card>
+
+        {/* 로그아웃 버튼 */}
+        <Button
+          variant="outline"
+          className="h-11 w-full text-red-500 border-red-200 hover:bg-red-50"
+          onClick={() => {
+            if (confirm("로그아웃 하시겠습니까?")) {
+              // 데모 사용자 정보 삭제
+              localStorage.removeItem("demoUser");
+              localStorage.removeItem("demoActions");
+              // Zustand 스토어 초기화
+              useAuthStore.getState().logout();
+              // 로그인 페이지로 이동
+              router.push("/login");
+            }
+          }}
+        >
+          로그아웃
+        </Button>
       </div>
 
       {/* 하단 네비게이션 */}

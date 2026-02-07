@@ -258,7 +258,7 @@ function AnalyzeContent() {
       </div>
 
       {/* 스크롤 가능한 컨텐츠 영역 */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-36">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {/* 요약 */}
         <Card className="p-4">
           <h2 className="text-base font-bold mb-3">📝 통화 요약</h2>
@@ -352,8 +352,8 @@ function AnalyzeContent() {
         </Card>
       </div>
 
-      {/* 하단 버튼 - PhoneFrame 내부 고정 */}
-      <div className="absolute bottom-0 left-0 right-0 bg-white border-t p-4 space-y-2">
+      {/* 하단 버튼 */}
+      <div className="shrink-0 bg-white border-t p-4 space-y-2">
         <div className="text-center text-sm text-gray-600 mb-1">
           {selectedCount}개 선택됨
         </div>

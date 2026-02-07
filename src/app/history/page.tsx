@@ -166,6 +166,12 @@ export default function History() {
     <div className="flex flex-col h-full bg-todak-cream">
       {/* 헤더 */}
       <div className="bg-white p-4 shadow-sm shrink-0">
+        <button
+          onClick={() => router.push("/")}
+          className="text-gray-600 text-sm mb-2 flex items-center gap-1"
+        >
+          ← 홈으로
+        </button>
         <h1 className="text-xl font-bold text-todak-brown">대화</h1>
         <p className="mt-1 text-xs text-gray-600">부모님과의 대화 기록</p>
       </div>
