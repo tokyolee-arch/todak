@@ -71,14 +71,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           // users 테이블 저장 시도 (실패해도 로그인은 진행)
           try {
-            const { data: existingUser } = await supabase
+            const typedSupabase = supabase as unknown as {
+              from: (table: string) => {
+                select: (columns: string) => {
+                  eq: (col: string, val: string) => {
+                    maybeSingle: () => Promise<{ data: Record<string, unknown> | null }>;
+                  };
+                };
+                insert: (data: Record<string, unknown>) => Promise<unknown>;
+              };
+            };
+
+            const { data: existingUser } = await typedSupabase
               .from("users")
               .select("id")
               .eq("id", authUser.id)
               .maybeSingle();
 
             if (!existingUser) {
-              await supabase.from("users").insert({
+              await typedSupabase.from("users").insert({
                 id: authUser.id,
                 email: authUser.email,
                 display_name:
