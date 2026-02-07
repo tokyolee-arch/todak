@@ -18,10 +18,10 @@ export async function GET(request: Request) {
           getAll() {
             return cookieStore.getAll();
           },
-          setAll(cookiesToSet) {
+          setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
             try {
               cookiesToSet.forEach(({ name, value, options }) => {
-                cookieStore.set(name, value, options);
+                cookieStore.set(name, value, options as Record<string, unknown>);
               });
             } catch {
               // Server Component에서 호출 시 무시
