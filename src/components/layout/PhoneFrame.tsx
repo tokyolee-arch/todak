@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useState, useEffect } from "react";
 
 interface PhoneFrameProps {
   children: ReactNode;
@@ -11,6 +11,22 @@ interface PhoneFrameProps {
  * 웹에서 모바일 앱처럼 보이도록 폰 테두리를 표시합니다.
  */
 export function PhoneFrame({ children }: PhoneFrameProps) {
+  const [time, setTime] = useState("");
+
+  useEffect(() => {
+    const updateTime = () => {
+      setTime(
+        new Date().toLocaleTimeString("ko-KR", {
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      );
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 10000); // 10초마다 갱신
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center p-4">
       {/* 폰 외부 프레임 */}
@@ -34,7 +50,7 @@ export function PhoneFrame({ children }: PhoneFrameProps) {
           <div className="w-full h-full bg-white rounded-[2.5rem] overflow-hidden">
             {/* 상단 상태바 */}
             <div className="h-7 bg-gray-900 flex items-center justify-between px-6 text-white text-xs">
-              <span>{new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}</span>
+              <span>{time || "\u00A0"}</span>
               <div className="flex items-center gap-1">
                 <span>📶</span>
                 <span>🔋</span>

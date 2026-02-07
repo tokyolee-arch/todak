@@ -11,10 +11,7 @@ export default function OnboardingWelcome() {
   const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
-    // 로그인하지 않은 경우 로그인 페이지로
-    if (!user) {
-      router.push("/login");
-    }
+    // AuthProvider가 이미 로그인 체크를 하므로 여기서는 불필요
   }, [user, router]);
 
   const handleStart = () => {
@@ -22,7 +19,14 @@ export default function OnboardingWelcome() {
   };
 
   if (!user) {
-    return null;
+    return (
+      <div className="flex h-full items-center justify-center bg-todak-cream">
+        <div className="text-center">
+          <div className="animate-spin w-8 h-8 border-4 border-todak-orange border-t-transparent rounded-full mx-auto mb-2"></div>
+          <p className="text-sm text-gray-600">로딩 중...</p>
+        </div>
+      </div>
+    );
   }
 
   return (

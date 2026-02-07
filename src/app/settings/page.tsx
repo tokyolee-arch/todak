@@ -260,7 +260,7 @@ export default function Settings() {
           className="h-11 w-full text-red-500 border-red-200 hover:bg-red-50"
           onClick={() => {
             if (confirm("로그아웃 하시겠습니까?")) {
-              // 데모 사용자 정보 삭제
+              // 게스트 사용자 정보 삭제
               localStorage.removeItem("demoUser");
               localStorage.removeItem("demoActions");
               // Zustand 스토어 초기화

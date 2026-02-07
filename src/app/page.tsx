@@ -19,12 +19,9 @@ export default function Home() {
   }>>([]);
 
   useEffect(() => {
-    if (!user) {
-      router.push("/login");
-      return;
-    }
+    if (!user) return;
 
-    // 데모 모드: localStorage에서 액션 로드
+    // localStorage에서 액션 로드
     const storedActions = localStorage.getItem("demoActions");
     if (storedActions) {
       try {

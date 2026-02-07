@@ -29,13 +29,18 @@ export default function LoginPage() {
         provider: "google",
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
+          scopes: "https://www.googleapis.com/auth/calendar.events",
+          queryParams: {
+            access_type: "offline",
+            prompt: "consent",
+          },
         },
       });
 
       if (authError) {
         // Google Provider가 활성화되지 않은 경우 안내 메시지
         if (authError.message.includes("provider")) {
-          setError("Google 로그인이 아직 설정되지 않았습니다. 데모 모드를 이용해주세요.");
+          setError("Google 로그인이 아직 설정되지 않았습니다. 게스트로 시작해주세요.");
         } else {
           setError(authError.message);
         }
@@ -47,17 +52,17 @@ export default function LoginPage() {
     }
   };
 
-  // 데모 모드 - Google 설정 없이 테스트용
+  // 게스트 모드 - Google 설정 없이 테스트용
   const handleDemoLogin = async () => {
     setDemoLoading(true);
     setError(null);
 
     try {
-      // 데모 사용자 생성
+      // 게스트 사용자 생성
       const demoUser = {
-        id: `demo-${Date.now()}`,
-        email: "demo@todak.app",
-        displayName: "데모 사용자",
+        id: `guest-${Date.now()}`,
+        email: "guest@todak.app",
+        displayName: "게스트",
         createdAt: new Date(),
       };
 
@@ -70,7 +75,7 @@ export default function LoginPage() {
       // 온보딩으로 이동
       router.push("/onboarding");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "데모 로그인 실패");
+      setError(err instanceof Error ? err.message : "게스트 로그인 실패");
     } finally {
       setDemoLoading(false);
     }
@@ -178,11 +183,11 @@ export default function LoginPage() {
           variant="outline"
           className="h-12 w-full border-todak-orange text-todak-orange font-semibold hover:bg-todak-orange/10"
         >
-          {demoLoading ? "시작 중..." : "🧪 데모 모드로 시작하기"}
+          {demoLoading ? "시작 중..." : "게스트로 시작하기"}
         </Button>
         
         <p className="text-xs text-center text-gray-500">
-          데모 모드는 로그인 없이 앱을 체험할 수 있습니다
+          로그인 없이 앱을 체험할 수 있습니다
         </p>
       </div>
     </div>

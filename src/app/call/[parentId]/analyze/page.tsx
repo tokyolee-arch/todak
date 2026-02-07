@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { createClient } from "@/lib/supabase/client";
+import { useAuthStore } from "@/lib/store/authStore";
 import type { ExtractedSchedule } from "@/types";
-import { format } from "date-fns";
+import { format, addDays } from "date-fns";
 import { ko } from "date-fns/locale";
 
 // 로딩 컴포넌트
@@ -139,6 +140,98 @@ function AnalyzeContent() {
     setSchedules((prev) => prev.map((s) => ({ ...s, selected: !allSelected })));
   };
 
+  // Google Calendar API로 일정 등록
+  const addToGoogleCalendarAPI = async (
+    token: string,
+    schedule: ExtractedSchedule
+  ): Promise<boolean> => {
+    try {
+      const startDate = new Date(schedule.dueDate);
+      const endDate = addDays(startDate, 1);
+
+      const event = {
+        summary: `[토닥] ${schedule.topic}`,
+        description: `${schedule.reason}\n\n유형: ${typeLabels[schedule.type] || schedule.type}\n부모님: ${parentName}`,
+        start: {
+          date: format(startDate, "yyyy-MM-dd"),
+        },
+        end: {
+          date: format(endDate, "yyyy-MM-dd"),
+        },
+        reminders: {
+          useDefault: false,
+          overrides: [
+            { method: "popup", minutes: 60 },
+          ],
+        },
+      };
+
+      const response = await fetch(
+        "https://www.googleapis.com/calendar/v3/calendars/primary/events",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(event),
+        }
+      );
+
+      return response.ok;
+    } catch {
+      return false;
+    }
+  };
+
+  // ICS 파일 생성 및 다운로드 (게스트/fallback용)
+  const downloadIcsFile = (selectedSchedules: ExtractedSchedule[]) => {
+    const icsEvents = selectedSchedules.map((schedule) => {
+      const startDate = new Date(schedule.dueDate);
+      const endDate = addDays(startDate, 1);
+      const dtStart = format(startDate, "yyyyMMdd");
+      const dtEnd = format(endDate, "yyyyMMdd");
+      const uid = `todak-${Date.now()}-${Math.random().toString(36).substr(2, 9)}@todak.app`;
+      const desc = `${schedule.reason}\\n\\n유형: ${typeLabels[schedule.type] || schedule.type}\\n부모님: ${parentName}`;
+
+      return [
+        "BEGIN:VEVENT",
+        `UID:${uid}`,
+        `DTSTART;VALUE=DATE:${dtStart}`,
+        `DTEND;VALUE=DATE:${dtEnd}`,
+        `SUMMARY:[토닥] ${schedule.topic}`,
+        `DESCRIPTION:${desc}`,
+        "BEGIN:VALARM",
+        "TRIGGER:-PT1H",
+        "ACTION:DISPLAY",
+        "DESCRIPTION:1시간 후 일정이 있습니다",
+        "END:VALARM",
+        "END:VEVENT",
+      ].join("\r\n");
+    });
+
+    const icsContent = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//Todak//Events//KO",
+      "CALSCALE:GREGORIAN",
+      "METHOD:PUBLISH",
+      "X-WR-CALNAME:토닥 일정",
+      ...icsEvents,
+      "END:VCALENDAR",
+    ].join("\r\n");
+
+    const blob = new Blob([icsContent], { type: "text/calendar;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "todak-schedules.ics";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const handleConfirm = async () => {
     const selectedSchedules = schedules.filter((s) => s.selected);
 
@@ -146,74 +239,108 @@ function AnalyzeContent() {
       if (!confirm("선택된 일정이 없습니다. 그대로 진행하시겠습니까?")) {
         return;
       }
+      router.push("/");
+      return;
     }
 
     setIsSaving(true);
 
     try {
-      // 데모 모드인 경우 로컬 스토리지에 저장
-      if (isDemoMode) {
-        const existingActions = JSON.parse(localStorage.getItem("demoActions") || "[]");
-        const newActions = selectedSchedules.map((schedule) => ({
-          id: `demo-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          conversation_id: null,
-          parent_id: parentId,
-          type: schedule.type,
-          topic: schedule.topic,
-          reason: schedule.reason,
-          due_date: schedule.dueDate,
-          confidence: schedule.confidence,
-          selected: true,
-          completed: false,
-          created_at: new Date().toISOString(),
-        }));
-        localStorage.setItem("demoActions", JSON.stringify([...existingActions, ...newActions]));
-        
-        // sessionStorage 정리
-        sessionStorage.removeItem("demoConversationText");
-        sessionStorage.removeItem("demoParentId");
-        
-        alert(`${selectedSchedules.length}개의 일정이 저장되었습니다! (데모 모드)`);
-        router.push("/");
-        return;
-      }
+      // 로컬 스토리지에 일정 저장 (앱 내부용)
+      const existingActions = JSON.parse(localStorage.getItem("demoActions") || "[]");
+      const newActions = selectedSchedules.map((schedule) => ({
+        id: `action-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        conversation_id: conversationId,
+        parent_id: parentId,
+        type: schedule.type,
+        topic: schedule.topic,
+        reason: schedule.reason,
+        due_date: schedule.dueDate,
+        confidence: schedule.confidence,
+        selected: true,
+        completed: false,
+        created_at: new Date().toISOString(),
+      }));
+      localStorage.setItem("demoActions", JSON.stringify([...existingActions, ...newActions]));
 
-      // 정상 모드: Supabase에 저장
-      const supabase = createClient();
-      if (!supabase) {
-        throw new Error("Supabase client not initialized");
-      }
+      // sessionStorage 정리
+      sessionStorage.removeItem("demoConversationText");
+      sessionStorage.removeItem("demoParentId");
 
-      // 선택된 일정을 actions 테이블에 저장
-      for (const schedule of selectedSchedules) {
-        await (
-          supabase.from("actions") as unknown as {
-            insert: (data: {
-              conversation_id: string | null;
-              parent_id: string;
-              type: string;
-              topic: string;
-              reason: string;
-              due_date: string;
-              confidence: number;
-              selected: boolean;
-              completed: boolean;
-            }) => Promise<unknown>;
+      // Google Calendar 연동 시도
+      const providerToken = useAuthStore.getState().providerToken;
+
+      if (providerToken) {
+        // Google 로그인 사용자: API로 자동 등록
+        let successCount = 0;
+        for (const schedule of selectedSchedules) {
+          const ok = await addToGoogleCalendarAPI(providerToken, schedule);
+          if (ok) successCount++;
+        }
+
+        if (successCount === selectedSchedules.length) {
+          alert(`${successCount}개의 일정이 Google 캘린더에 등록되었습니다!`);
+        } else if (successCount > 0) {
+          alert(
+            `${selectedSchedules.length}개 중 ${successCount}개가 Google 캘린더에 등록되었습니다.\n나머지는 수동으로 등록해주세요.`
+          );
+        } else {
+          // API 실패 시 ICS 파일 다운로드로 fallback
+          const proceed = confirm(
+            "Google 캘린더 자동 등록에 실패했습니다.\n캘린더 파일(.ics)을 다운로드하시겠습니까?\n다운로드 후 파일을 열면 캘린더에 자동 등록됩니다."
+          );
+          if (proceed) {
+            downloadIcsFile(selectedSchedules);
           }
-        ).insert({
-          conversation_id: conversationId,
-          parent_id: parentId,
-          type: schedule.type,
-          topic: schedule.topic,
-          reason: schedule.reason,
-          due_date: schedule.dueDate,
-          confidence: schedule.confidence,
-          selected: true,
-          completed: false,
-        });
+        }
+      } else {
+        // 게스트 사용자: ICS 파일 다운로드
+        const proceed = confirm(
+          `${selectedSchedules.length}개의 일정을 캘린더 파일(.ics)로 다운로드하시겠습니까?\n다운로드 후 파일을 열면 캘린더에 자동 등록됩니다.`
+        );
+        if (proceed) {
+          downloadIcsFile(selectedSchedules);
+        }
       }
 
-      // 홈으로 이동
+      // Supabase에도 저장 (정상 모드)
+      if (!isDemoMode && conversationId) {
+        try {
+          const supabase = createClient();
+          if (supabase) {
+            for (const schedule of selectedSchedules) {
+              await (
+                supabase.from("actions") as unknown as {
+                  insert: (data: {
+                    conversation_id: string | null;
+                    parent_id: string;
+                    type: string;
+                    topic: string;
+                    reason: string;
+                    due_date: string;
+                    confidence: number;
+                    selected: boolean;
+                    completed: boolean;
+                  }) => Promise<unknown>;
+                }
+              ).insert({
+                conversation_id: conversationId,
+                parent_id: parentId,
+                type: schedule.type,
+                topic: schedule.topic,
+                reason: schedule.reason,
+                due_date: schedule.dueDate,
+                confidence: schedule.confidence,
+                selected: true,
+                completed: false,
+              });
+            }
+          }
+        } catch (dbError) {
+          console.warn("Supabase 저장 실패 (무시):", dbError);
+        }
+      }
+
       router.push("/");
     } catch (error) {
       console.error("Error saving schedules:", error);
@@ -362,7 +489,7 @@ function AnalyzeContent() {
           disabled={isSaving}
           className="w-full h-12 bg-todak-orange hover:bg-todak-orange/90 text-base font-semibold"
         >
-          {isSaving ? "저장 중..." : "✓ 일정 등록 완료"}
+          {isSaving ? "등록 중..." : "📅 캘린더에 등록하기"}
         </Button>
         <Button
           variant="ghost"
