@@ -19,7 +19,6 @@ import { useAuthStore } from "@/lib/store/authStore";
 
 interface ParentData {
   name: string;
-  birthday: string;
   phone: string;
   minContactInterval: number;
   passedAway: boolean;
@@ -39,7 +38,6 @@ interface ParentData {
 
 const initialParentData: ParentData = {
   name: "",
-  birthday: "",
   phone: "",
   minContactInterval: 14,
   passedAway: false,
@@ -92,7 +90,6 @@ export default function ParentInfo() {
           user_id: user.id,
           name: motherData.name,
           relationship: "mother",
-          birthday: motherData.birthday || null,
           phone: motherData.phone || null,
           min_contact_interval_days: motherData.minContactInterval,
         });
@@ -103,7 +100,6 @@ export default function ParentInfo() {
           user_id: user.id,
           name: fatherData.name,
           relationship: "father",
-          birthday: fatherData.birthday || null,
           phone: fatherData.phone || null,
           min_contact_interval_days: fatherData.minContactInterval,
         });
@@ -174,20 +170,6 @@ export default function ParentInfo() {
           </div>
 
           <div>
-            <Label htmlFor="birthday" className="text-sm">생년월일 (선택)</Label>
-            <Input
-              id="birthday"
-              type="date"
-              value={currentData.birthday}
-              onChange={(e) =>
-                setCurrentData({ ...currentData, birthday: e.target.value })
-              }
-              className="h-10 text-sm"
-              disabled={isPassedAway}
-            />
-          </div>
-
-          <div>
             <Label htmlFor="phone" className="text-sm">연락처 (선택)</Label>
             <Input
               id="phone"
@@ -218,6 +200,7 @@ export default function ParentInfo() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="0">선택안함</SelectItem>
                 <SelectItem value="1">매일</SelectItem>
                 <SelectItem value="2">이틀에 한 번</SelectItem>
                 <SelectItem value="4">일주일에 2번</SelectItem>
@@ -500,7 +483,7 @@ export default function ParentInfo() {
               }
             />
             <label htmlFor={`passed-away-${activeTab}`} className="text-sm cursor-pointer text-gray-500">
-              슬프게도 먼저 돌아가셨습니다
+              고인이 되셨습니다
             </label>
           </div>
         </Card>
